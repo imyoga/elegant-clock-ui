@@ -1,9 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
 export function WallClock() {
   const [time, setTime] = useState(new Date())
+  
+  // Track cumulative rotations to avoid counter-clockwise snap at 12 o'clock
+  const secondRotation = useRef(0)
+  const minuteRotation = useRef(0)
+  const hourRotation = useRef(0)
+  const prevSeconds = useRef(-1)
+  const prevMinutes = useRef(-1)
+  const prevHours = useRef(-1)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -19,10 +27,40 @@ export function WallClock() {
   const hours24 = time.getUTCHours()
   const hours = hours24 % 12
 
-  // Calculate rotation angles
-  const secondDegrees = seconds * 6 // 360 / 60 = 6 degrees per second
-  const minuteDegrees = minutes * 6 + seconds * 0.1 // 6 degrees per minute + smooth transition
-  const hourDegrees = hours * 30 + minutes * 0.5 // 30 degrees per hour + smooth transition
+  // Calculate base rotation angles
+  const baseSecondDegrees = seconds * 6
+  const baseMinuteDegrees = minutes * 6 + seconds * 0.1
+  const baseHourDegrees = hours * 30 + minutes * 0.5
+
+  // Handle seconds wrap-around (59 -> 0)
+  if (prevSeconds.current !== -1) {
+    if (prevSeconds.current > 45 && seconds < 15) {
+      // Crossed from 59 to 0, add a full rotation
+      secondRotation.current += 360
+    }
+  }
+  prevSeconds.current = seconds
+
+  // Handle minutes wrap-around (59 -> 0)
+  if (prevMinutes.current !== -1) {
+    if (prevMinutes.current > 45 && minutes < 15) {
+      minuteRotation.current += 360
+    }
+  }
+  prevMinutes.current = minutes
+
+  // Handle hours wrap-around (11 -> 0)
+  if (prevHours.current !== -1) {
+    if (prevHours.current > 9 && hours < 3) {
+      hourRotation.current += 360
+    }
+  }
+  prevHours.current = hours
+
+  // Final rotation values (cumulative)
+  const secondDegrees = baseSecondDegrees + secondRotation.current
+  const minuteDegrees = baseMinuteDegrees + minuteRotation.current
+  const hourDegrees = baseHourDegrees + hourRotation.current
 
   // Hour markers positions (12 markers)
   const hourMarkers = Array.from({ length: 12 }, (_, i) => {
@@ -60,13 +98,13 @@ export function WallClock() {
 
   return (
     <div className="relative flex flex-col items-center gap-4">
+      {/* UTC label fixed in viewport corner */}
+      <div className="fixed top-4 right-4 z-50 px-3 py-1 rounded-md bg-accent/10 border border-accent/30 backdrop-blur-sm">
+        <span className="text-xs font-medium text-accent tracking-wider">UTC</span>
+      </div>
+
       {/* Clock container */}
       <div className="relative">
-        {/* UTC label in top-right corner */}
-        <div className="absolute -top-2 -right-2 z-10 px-2 py-0.5 rounded-md bg-accent/10 border border-accent/30 backdrop-blur-sm">
-          <span className="text-xs font-medium text-accent tracking-wider">UTC</span>
-        </div>
-
         {/* Subtle shadow effect */}
         <div className="absolute inset-0 rounded-full bg-foreground/5 blur-2xl scale-110" />
 
