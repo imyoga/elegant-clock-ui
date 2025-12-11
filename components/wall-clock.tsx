@@ -13,9 +13,11 @@ export function WallClock() {
     return () => clearInterval(timer)
   }, [])
 
-  const seconds = time.getSeconds()
-  const minutes = time.getMinutes()
-  const hours = time.getHours() % 12
+  // Use UTC time
+  const seconds = time.getUTCSeconds()
+  const minutes = time.getUTCMinutes()
+  const hours24 = time.getUTCHours()
+  const hours = hours24 % 12
 
   // Calculate rotation angles
   const secondDegrees = seconds * 6 // 360 / 60 = 6 degrees per second
@@ -53,12 +55,22 @@ export function WallClock() {
     }
   }).filter(Boolean)
 
-  return (
-    <div className="relative">
-      {/* Subtle shadow effect */}
-      <div className="absolute inset-0 rounded-full bg-foreground/5 blur-2xl scale-110" />
+  // Format digital time as 24h with leading zeros
+  const digitalTime = `${hours24.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
 
-      <svg viewBox="0 0 100 100" className="w-72 h-72 md:w-96 md:h-96 drop-shadow-lg">
+  return (
+    <div className="relative flex flex-col items-center gap-4">
+      {/* Clock container */}
+      <div className="relative">
+        {/* UTC label in top-right corner */}
+        <div className="absolute -top-2 -right-2 z-10 px-2 py-0.5 rounded-md bg-accent/10 border border-accent/30 backdrop-blur-sm">
+          <span className="text-xs font-medium text-accent tracking-wider">UTC</span>
+        </div>
+
+        {/* Subtle shadow effect */}
+        <div className="absolute inset-0 rounded-full bg-foreground/5 blur-2xl scale-110" />
+
+        <svg viewBox="0 0 100 100" className="w-72 h-72 md:w-96 md:h-96 drop-shadow-lg">
         {/* Clock face background */}
         <circle cx="50" cy="50" r="48" className="fill-card stroke-border" strokeWidth="0.5" />
 
@@ -142,6 +154,15 @@ export function WallClock() {
         <circle cx="50" cy="50" r="3" className="fill-foreground" />
         <circle cx="50" cy="50" r="1.5" className="fill-card" />
       </svg>
+      </div>
+
+      {/* Digital clock display */}
+      <div className="flex flex-col items-center gap-1">
+        <div className="font-mono text-3xl md:text-4xl font-light tracking-widest text-foreground tabular-nums">
+          {digitalTime}
+        </div>
+        <span className="text-xs text-muted-foreground tracking-wide">24-HOUR FORMAT</span>
+      </div>
     </div>
   )
 }
